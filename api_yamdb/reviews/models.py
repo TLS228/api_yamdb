@@ -9,7 +9,7 @@ class Title(models.Model):
     pass
 
 
-class Categorie(models.Model):
+class Category(models.Model):
     pass
 
 
