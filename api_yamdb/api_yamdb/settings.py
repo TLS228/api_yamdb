@@ -25,10 +25,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'reviews.apps.ReviewsConfig',
     'api.apps.ApiConfig',
-    'users.apps.UsersConfig',
 ]
 
-AUTH_USER_MODEL = 'users.MyUser'
+AUTH_USER_MODEL = 'reviews.MyUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
