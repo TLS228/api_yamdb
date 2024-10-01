@@ -13,8 +13,17 @@ CHOICES = (
 
 
 class MyUser(AbstractUser):
-    bio = models.CharField(max_length=256, blank=True)
-    role = models.CharField(max_length=16, choices=CHOICES, default='user')
+    bio = models.CharField(max_length=256, blank=True,
+                           verbose_name='Биография')
+    role = models.CharField(max_length=16, choices=CHOICES,
+                            default='user', verbose_name='Роль')
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return self.username
 
 
 class Category(models.Model):
@@ -44,6 +53,7 @@ class Genre(models.Model):
 class Title(models.Model):
     name = models.CharField('Название', max_length=256)
     year = models.IntegerField('Год выпуска')
+    # rating = models.IntegerField('Рейтинг', default=0, blank=True)
     description = models.TextField('Описание', blank=True)
     genre = models.ForeignKey(
         Genre, on_delete=models.SET_NULL, related_name='genre',
@@ -58,32 +68,36 @@ class Title(models.Model):
         verbose_name = 'произведение'
         verbose_name_plural = 'Произведения'
 
+    @property
+    def rating(self):
+        return self.reviews.aggregate(Avg('score'))['score__avg']
+
     def __str__(self):
         return self.name
 
 
 class Review(models.Model):
-    author = models.ForeignKey(
-        MyUser,
-        on_delete=models.CASCADE,
-        related_name='reviews',
-        verbose_name='Автор отзыва',
-    )
-    text = models.TextField('Текст отзыва')
-    pub_date = models.DateTimeField(
-        'Дата публикации',
-        auto_now_add=True,
-        db_index=True,
-    )
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
         related_name='reviews',
         verbose_name='Произведение',
     )
+    text = models.TextField('Текст отзыва')
+    author = models.ForeignKey(
+        MyUser,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Автор отзыва',
+    )
     score = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(10)],
         verbose_name='Оценка',
+    )
+    pub_date = models.DateTimeField(
+        'Дата публикации',
+        auto_now_add=True,
+        db_index=True,
     )
 
     class Meta:
