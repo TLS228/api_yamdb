@@ -1,15 +1,14 @@
 from django.contrib.auth import get_user_model
-from rest_framework.generics import CreateAPIView
-from rest_framework import viewsets
+from rest_framework import filters, mixins, pagination, permissions, viewsets, generics
 from rest_framework.generics import get_object_or_404
+
+from reviews.models import Title, Review, Comment, Genre, Category
 from .permissions import AdminModeratorAuthor
 from .serializers import (
-    ReviewSerializer,
-    CommentSerializer
+    ReviewSerializer, CommentSerializer, SignupSerializer, TitleSerializer, 
+    GenreSerializer, CategorySerializer
 )
-from reviews.models import Title, Review, Comment
 
-from .serializers import SignupSerializer
 
 User = get_user_model()
 
@@ -17,6 +16,21 @@ User = get_user_model()
 class SignupView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = SignupSerializer
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+
+class GenreViewSet(viewsets.ModelViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.all()
+    serializer_class = TitleSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -58,3 +72,5 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return self.get_review().comments.all()
+
+

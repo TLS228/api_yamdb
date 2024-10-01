@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from reviews.models import (
-    Category, Genre, Title, CustomUser, Review, Comment
+    Category, Comment, MyUser, Genre, Review, Title
 )
 
 
@@ -12,6 +12,26 @@ class SignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('email', 'username')
+
+
+class TitleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = '__all__'
+
+
+class GenreSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Genre
+        fields = '__all__'
 
 
 class ReviewSerializer(serializers.ModelSerializer):
