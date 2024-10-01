@@ -115,7 +115,7 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 #         "rest_framework_simplejwt.authentication.JWTAuthentication",
 #     ]
 # }
-#
+
 # SIMPLE_JWT = {
 #     "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
 #     "AUTH_HEADER_TYPES": ("Bearer",),
