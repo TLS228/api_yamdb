@@ -17,6 +17,8 @@ class MyUser(AbstractUser):
                            verbose_name='Биография')
     role = models.CharField(max_length=16, choices=CHOICES,
                             default='user', verbose_name='Роль')
+    confirmation_code = models.CharField(max_length=6, blank=True, null=True,
+                                         verbose_name='Код подтверждения')
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -55,18 +57,14 @@ class Title(models.Model):
     year = models.IntegerField('Год выпуска')
     # rating = models.IntegerField('Рейтинг', default=0, blank=True)
     description = models.TextField('Описание', blank=True)
-    genre = models.ForeignKey(
-        Genre, on_delete=models.SET_NULL, related_name='genre',
-        null=True, verbose_name='Жанр'
+    genre = models.ManyToManyField(
+        Genre, through='GenreTitle', related_name='titles',
+        verbose_name='Жанр'
     )
-    category = models.OneToOneField(
+    category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, related_name='category',
         null=True, verbose_name='Категория'
     )
-
-    class Meta:
-        verbose_name = 'произведение'
-        verbose_name_plural = 'Произведения'
 
     @property
     def rating(self):
@@ -74,6 +72,14 @@ class Title(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class GenreTitle(models.Model):
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
+    class Meta:
+        verbose_name = 'произведение'
+        verbose_name_plural = 'Произведения'
 
 
 class Review(models.Model):
