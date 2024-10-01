@@ -1,21 +1,22 @@
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-from rest_framework import serializers, views
+from rest_framework import serializers, status, views
+from rest_framework.response import Response
 
 from .serializers import SignupSerializer
 
 User = get_user_model()
 
-CONFIRMATION_CODE = '1234567890'
+NUMS = '1234567890'
 
 
-def get_confirmation_code(nums):
+def get_confirmation_code(nums=NUMS):
     confirm_code = ''
     nums_set = set(nums)
     for num in nums_set:
         confirm_code += num
 
-    return int(confirm_code)
+    return confirm_code[:6]
 
 
 class SignupView(views.APIView):
@@ -24,12 +25,19 @@ class SignupView(views.APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             username = serializer.validated_data['username']
-            current_user, status = User.objects.get_or_create(
+            current_user, current_status = User.objects.get_or_create(
                 email=email,
                 username=username
             )
-            current_user.confirmation_code = get_confirmation_code(CONFIRMATION_CODE)
+            current_user.confirmation_code = get_confirmation_code()
+            send_mail(
+                subject='Код подтверждения',
+                message=current_user.confirmation_code,
+                from_email='example@ex.ru',
+                recipient_list=(email,)
+            )
             current_user.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            raise serializers.ValidationError(
-                'Проверьте корректность введённых данных!')
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
