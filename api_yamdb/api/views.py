@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.db.utils import IntegrityError
 from rest_framework import (
-  filters, mixins, pagination, permissions, viewsets, generics, serializers, status, views
+  filters, mixins, permissions, viewsets, generics, serializers, status, views
 )
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
 from reviews.models import Title, Review, Comment, Genre, Category
-from .permissions import AdminModeratorAuthor
+from .permissions import AdminModeratorAuthor, IsAdmin, IsAdminOrReadOnly
 from .serializers import (
     ReviewSerializer, CommentSerializer, SignupSerializer, TitleSerializer, 
     TokenSerializer, GenreSerializer, CategorySerializer, UserSerializer
@@ -83,6 +83,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'username'
+    filter_backends = (filters.SearchFilter,)
 
     @action(methods=('get', 'patch'), detail=False, url_path='me')
     def current_user_profile(self, request):
@@ -100,23 +101,29 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'delete']
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
 
 
 class GenreViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'delete']
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'patch', 'delete']
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
-
+    permission_classes = (IsAdminOrReadOnly,)
 
 class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
-    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = (AdminModeratorAuthor,)
 
@@ -136,7 +143,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = (AdminModeratorAuthor,)
 

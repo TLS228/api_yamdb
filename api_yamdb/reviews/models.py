@@ -58,7 +58,6 @@ class Genre(models.Model):
 class Title(models.Model):
     name = models.CharField('Название', max_length=256)
     year = models.IntegerField('Год выпуска')
-    # rating = models.IntegerField('Рейтинг', default=0, blank=True)
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
         Genre, through='GenreTitle', related_name='titles',
@@ -72,10 +71,6 @@ class Title(models.Model):
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
-
-    @property
-    def rating(self):
-        return self.reviews.aggregate(Avg('score'))['score__avg']
 
     def __str__(self):
         return self.name
