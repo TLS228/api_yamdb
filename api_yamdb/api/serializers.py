@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator
+from django.db.utils import IntegrityError
 from rest_framework import serializers
 from reviews.models import (
     Category, Comment, MyUser, Genre, Review, Title
@@ -46,7 +47,6 @@ class UserSerializer(serializers.ModelSerializer):
             'last_name',
             'bio',
             'role',
-            'confirmation_code'
         )
 
 
