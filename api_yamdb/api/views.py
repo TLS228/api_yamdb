@@ -1,21 +1,26 @@
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from django.db.utils import IntegrityError
 from rest_framework import (
   filters, mixins, pagination, permissions, viewsets, generics, serializers, status, views
 )
+from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import AccessToken
 
 from reviews.models import Title, Review, Comment, Genre, Category
 from .permissions import AdminModeratorAuthor
 from .serializers import (
     ReviewSerializer, CommentSerializer, SignupSerializer, TitleSerializer, 
-    GenreSerializer, CategorySerializer
+    TokenSerializer, GenreSerializer, CategorySerializer, UserSerializer
 )
 
 
 User = get_user_model()
 
 NUMS = '1234567890'
+
 
 def get_confirmation_code(nums=NUMS):
     confirm_code = ''
@@ -32,10 +37,14 @@ class SignupView(views.APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             username = serializer.validated_data['username']
-            current_user, current_status = User.objects.get_or_create(
-                email=email,
-                username=username
-            )
+            try:
+                current_user, current_status = User.objects.get_or_create(
+                    email=email,
+                    username=username
+                )
+            except IntegrityError:
+                raise serializers.ValidationError(
+                    'Такой пользователь уже зарегистрирован!')
             current_user.confirmation_code = get_confirmation_code()
             send_mail(
                 subject='Код подтверждения',
@@ -44,10 +53,50 @@ class SignupView(views.APIView):
                 recipient_list=(email,)
             )
             current_user.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
+
+
+class TokenObtainView(views.APIView):
+    def post(self, request):
+        serializer = TokenSerializer(data=request.data)
+        if serializer.is_valid():
+            confirmation_code = serializer.validated_data['confirmation_code']
+            username = serializer.validated_data['username']
+            user = get_object_or_404(User, username=username)
+            if user.confirmation_code != confirmation_code:
+                return Response(
+                    {"error": "Неверный код подтверждения!"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            token = AccessToken.for_user(user)
+            return Response({"token": f"{token}"})
+        else:
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    http_method_names = ('get', 'post', 'patch', 'delete')
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    lookup_field = 'username'
+
+    @action(methods=('get', 'patch'), detail=False, url_path='me')
+    def current_user_profile(self, request):
+        user = self.request.user
+        if request.method == 'GET':
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save(role=self.request.user.role)
+        else:
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):

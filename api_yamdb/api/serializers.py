@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import RegexValidator
 from rest_framework import serializers
 from reviews.models import (
     Category, Comment, MyUser, Genre, Review, Title
@@ -8,12 +9,45 @@ from reviews.models import (
 User = get_user_model()
 
 
-class SignupSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(required=True)
+class SignupSerializer(serializers.Serializer):
+    username = serializers.CharField(
+        max_length=150,
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
+        required=True
+    )
+    email = serializers.EmailField(max_length=254, required=True)
+
+    def validate_username(self, value):
+        if value == 'me':
+            raise serializers.ValidationError(
+                'Запрещено использовать это имя!')
+
+        return value
+
+
+class TokenSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150, required=True)
+    confirmation_code = serializers.CharField(max_length=6, required=True)
+
+
+class UserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        max_length=150,
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
+        required=True
+    )
 
     class Meta:
         model = User
-        fields = ('email', 'username')
+        fields = (
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+            'confirmation_code'
+        )
 
 
 class TitleSerializer(serializers.ModelSerializer):
