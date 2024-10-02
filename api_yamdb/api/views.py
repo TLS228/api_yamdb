@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.db.utils import IntegrityError
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import (
   filters, mixins, permissions, viewsets, generics, serializers, status, views
 )
@@ -13,8 +14,10 @@ from reviews.models import Title, Review, Comment, Genre, Category
 from .permissions import AdminModeratorAuthor, IsAdmin, IsAdminOrReadOnly
 from .serializers import (
     ReviewSerializer, CommentSerializer, SignupSerializer, TitleSerializer, 
-    TokenSerializer, GenreSerializer, CategorySerializer, UserSerializer
+    TokenSerializer, GenreSerializer, CategorySerializer, UserSerializer,
+    TitleSerializerForWrite, TitleSerializerForRead
 )
+from .filters import TitleFilter
 
 
 User = get_user_model()
@@ -106,7 +109,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, )
     search_fields = ('name',)
     lookup_field = 'slug'
 
@@ -129,8 +132,17 @@ class GenreViewSet(viewsets.ModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
     queryset = Title.objects.all()
-    serializer_class = TitleSerializer
     permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
+    filterset_class = TitleFilter
+    ordering_fields = ('id', 'name', 'year')
+    filterset_fields = ('genre__slug', 'category__slug', 'name', 'year')
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'partial_update'):
+            return TitleSerializerForWrite
+        return TitleSerializerForRead
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
