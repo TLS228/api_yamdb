@@ -84,8 +84,10 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     lookup_field = 'username'
     filter_backends = (filters.SearchFilter,)
+    search_fields = ('username',)
+    permission_classes = (IsAdmin,)
 
-    @action(methods=('get', 'patch'), detail=False, url_path='me')
+    @action(methods=('get', 'patch'), detail=False, url_path='me', permission_classes=(permissions.IsAuthenticated,))
     def current_user_profile(self, request):
         user = self.request.user
         if request.method == 'GET':
@@ -99,13 +101,17 @@ class UserViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data)
 
-
 class CategoryViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'delete']
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class GenreViewSet(viewsets.ModelViewSet):
@@ -114,7 +120,11 @@ class GenreViewSet(viewsets.ModelViewSet):
     serializer_class = GenreSerializer
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
 
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']

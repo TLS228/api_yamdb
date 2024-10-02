@@ -73,8 +73,7 @@ class TitleSerializer(serializers.ModelSerializer):
 
     def get_rating(self, obj):
         scores = Review.objects.filter(title=obj).values_list('score', flat=True)
-        return round(sum(scores) / len(scores)) if scores else 0
-
+        return round(sum(scores) / len(scores)) if scores else None
 
 
 class ReviewSerializer(serializers.ModelSerializer):
