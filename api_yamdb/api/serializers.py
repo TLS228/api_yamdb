@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator
+from django.db.utils import IntegrityError
 from rest_framework import serializers
 from reviews.models import (
     Category, Comment, MyUser, Genre, Review, Title
@@ -40,14 +41,15 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'bio',
-            'role',
+            'username', 'email', 'first_name', 'last_name', 'bio', 'role',
         )
 
+    def create(self, validated_data):
+        try:
+            user = User.objects.create(**validated_data)
+        except IntegrityError:
+            raise serializers.ValidationError('Ошибка при создании пользователя!')
+        return user
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -73,8 +75,7 @@ class TitleSerializer(serializers.ModelSerializer):
 
     def get_rating(self, obj):
         scores = Review.objects.filter(title=obj).values_list('score', flat=True)
-        return round(sum(scores) / len(scores)) if scores else 0
-
+        return round(sum(scores) / len(scores)) if scores else None
 
 
 class ReviewSerializer(serializers.ModelSerializer):
