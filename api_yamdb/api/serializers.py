@@ -46,28 +46,35 @@ class UserSerializer(serializers.ModelSerializer):
             'last_name',
             'bio',
             'role',
-            'confirmation_code'
         )
-
-
-class TitleSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Title
-        fields = '__all__'
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ('name', 'slug')
 
 
 class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
-        fields = '__all__'
+        fields = ('name', 'slug')
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    rating = serializers.SerializerMethodField()
+    genre = GenreSerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
+
+    class Meta:
+        model = Title
+        fields = ('id', 'name', 'year', 'rating', 'description', 'genre', 'category')
+
+    def get_rating(self, obj):
+        scores = Review.objects.filter(title=obj).values_list('score', flat=True)
+        return round(sum(scores) / len(scores)) if scores else 0
+
 
 
 class ReviewSerializer(serializers.ModelSerializer):

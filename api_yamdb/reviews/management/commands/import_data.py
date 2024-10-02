@@ -29,9 +29,9 @@ class Command(BaseCommand):
                 obj, created = model.objects.get_or_create(**row)
                 if created:
                     obj.save()
-        self.stdout.write(
-            self.style.SUCCESS(f'{model.__name__} импортированы успешно')
-        )
+            self.stdout.write(
+                self.style.SUCCESS(f'{model.__name__} импортированы успешно')
+            )
 
     def import_users(self):
         self.import_from_csv(MyUser, 'static/data/users.csv')
