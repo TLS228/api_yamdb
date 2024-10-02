@@ -33,7 +33,7 @@ class Category(models.Model):
     slug = models.SlugField('Слаг', max_length=50, unique=True)
 
     class Meta:
-        verbose_name = 'категория'
+        verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
     def __str__(self):
@@ -45,7 +45,7 @@ class Genre(models.Model):
     slug = models.SlugField('Слаг', max_length=50, unique=True)
 
     class Meta:
-        verbose_name = 'жанр'
+        verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
     def __str__(self):
@@ -66,6 +66,10 @@ class Title(models.Model):
         null=True, verbose_name='Категория'
     )
 
+    class Meta:
+        verbose_name = 'Произведение'
+        verbose_name_plural = 'Произведения'
+
     @property
     def rating(self):
         return self.reviews.aggregate(Avg('score'))['score__avg']
@@ -77,9 +81,6 @@ class Title(models.Model):
 class GenreTitle(models.Model):
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
     title = models.ForeignKey(Title, on_delete=models.CASCADE)
-    class Meta:
-        verbose_name = 'произведение'
-        verbose_name_plural = 'Произведения'
 
 
 class Review(models.Model):
@@ -115,6 +116,9 @@ class Review(models.Model):
         ]
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
+
+    def __str__(self):
+        return self.title
 
 
 class Comment(models.Model):
