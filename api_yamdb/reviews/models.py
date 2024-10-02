@@ -13,6 +13,9 @@ CHOICES = (
 
 
 class MyUser(AbstractUser):
+    email = models.EmailField(max_length=254,
+                              unique=True,
+                              verbose_name='Почта')
     bio = models.CharField(max_length=256, blank=True,
                            verbose_name='Биография')
     role = models.CharField(max_length=16, choices=CHOICES,
