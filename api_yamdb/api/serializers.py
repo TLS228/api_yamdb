@@ -41,33 +41,41 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'bio',
-            'role',
+            'username', 'email', 'first_name', 'last_name', 'bio', 'role',
         )
 
-
-class TitleSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Title
-        fields = '__all__'
-
+    def create(self, validated_data):
+        try:
+            user = User.objects.create(**validated_data)
+        except IntegrityError:
+            raise serializers.ValidationError('Ошибка при создании пользователя!')
+        return user
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ('name', 'slug')
 
 
 class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
-        fields = '__all__'
+        fields = ('name', 'slug')
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    rating = serializers.SerializerMethodField()
+    genre = GenreSerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
+
+    class Meta:
+        model = Title
+        fields = ('id', 'name', 'year', 'rating', 'description', 'genre', 'category')
+
+    def get_rating(self, obj):
+        scores = Review.objects.filter(title=obj).values_list('score', flat=True)
+        return round(sum(scores) / len(scores)) if scores else None
 
 
 class ReviewSerializer(serializers.ModelSerializer):
