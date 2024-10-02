@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.db.utils import IntegrityError
 from rest_framework import (
-  filters, mixins, pagination, permissions, viewsets, generics, serializers, status, views
+  filters, mixins, permissions, viewsets, generics, serializers, status, views
 )
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
@@ -10,11 +10,13 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
 from reviews.models import Title, Review, Comment, Genre, Category
-from .permissions import AdminModeratorAuthor
+from .permissions import AdminModeratorAuthor, IsAdmin, IsAdminOrReadOnly
 from .serializers import (
     ReviewSerializer, CommentSerializer, SignupSerializer, TitleSerializer, 
     TokenSerializer, GenreSerializer, CategorySerializer, UserSerializer
 )
+from django.db import IntegrityError
+from django.core.exceptions import ObjectDoesNotExist
 
 
 User = get_user_model()
@@ -34,29 +36,65 @@ def get_confirmation_code(nums=NUMS):
 class SignupView(views.APIView):
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
+        
+        # Проверяем, валидны ли данные запроса
         if serializer.is_valid():
             email = serializer.validated_data['email']
             username = serializer.validated_data['username']
-            try:
-                current_user, current_status = User.objects.get_or_create(
-                    email=email,
-                    username=username
+
+            # Отладка: выводим данные, которые собираемся использовать
+            print(f'Attempting to create user with email: {email} and username: {username}')
+
+            # Проверка, существует ли пользователь с таким email
+            if User.objects.filter(email=email).exists():
+                print(f'User with email {email} already exists.')
+                return Response(
+                    {'email': 'Пользователь с таким email уже существует!'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
-            except IntegrityError:
-                raise serializers.ValidationError(
-                    'Такой пользователь уже зарегистрирован!')
-            current_user.confirmation_code = get_confirmation_code()
-            send_mail(
-                subject='Код подтверждения',
-                message=current_user.confirmation_code,
-                from_email='example@ex.ru',
-                recipient_list=(email,)
-            )
-            current_user.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+
+            # Проверка, существует ли пользователь с таким username
+            if User.objects.filter(username=username).exists():
+                print(f'User with username {username} already exists.')
+                return Response(
+                    {'username': 'Пользователь с таким username уже существует!'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                # Создание пользователя
+                current_user = User.objects.create(
+                    email=email,
+                    username=username,
+                    confirmation_code=get_confirmation_code()
+                )
+
+                # Отправка email с кодом подтверждения
+                send_mail(
+                    subject='Код подтверждения',
+                    message=current_user.confirmation_code,
+                    from_email='example@ex.ru',
+                    recipient_list=[email]
+                )
+
+                current_user.save()
+
+                # Отладка: подтверждение успешного создания пользователя
+                print(f'User {username} successfully created.')
+
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+            except IntegrityError as e:
+                print(f'IntegrityError occurred: {str(e)}')
+                return Response(
+                    {'detail': 'Ошибка при создании пользователя.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
         else:
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            # Если данные невалидны, выводим ошибки сериализатора
+            print(f'Invalid data: {serializer.errors}')
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TokenObtainView(views.APIView):
@@ -83,6 +121,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'username'
+    filter_backends = (filters.SearchFilter,)
 
     @action(methods=('get', 'patch'), detail=False, url_path='me')
     def current_user_profile(self, request):
@@ -100,23 +139,29 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'delete']
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
 
 
 class GenreViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'delete']
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'patch', 'delete']
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
-
+    permission_classes = (IsAdminOrReadOnly,)
 
 class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
-    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = (AdminModeratorAuthor,)
 
@@ -136,7 +181,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = (AdminModeratorAuthor,)
 
