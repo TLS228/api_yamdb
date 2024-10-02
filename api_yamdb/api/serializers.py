@@ -78,6 +78,61 @@ class TitleSerializer(serializers.ModelSerializer):
         return round(sum(scores) / len(scores)) if scores else None
 
 
+
+
+
+class TitleSerializerForRead(serializers.ModelSerializer):
+    """Сериализатор данных модели произведения для чтения."""
+
+    genre = GenreSerializer(many=True)
+    category = CategorySerializer(read_only=True)
+    rating = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
+        )
+
+    def get_rating(self, obj):
+        scores = Review.objects.filter(title=obj).values_list('score', flat=True)
+        return round(sum(scores) / len(scores)) if scores else None
+
+
+class TitleSerializerForWrite(serializers.ModelSerializer):
+    """Сериализатор данных модели произведения для записи."""
+
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(),
+        slug_field='slug',
+        required=True
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(),
+        many=True,
+        slug_field='slug',
+        allow_null=False,
+        allow_empty=False
+    )
+
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        return TitleSerializerForRead(instance).data
+
+
+
+
+
+
+
+
+
+
+
+
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
