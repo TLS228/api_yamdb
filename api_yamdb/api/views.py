@@ -101,6 +101,7 @@ class UserViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data)
 
+
 class CategoryViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'delete']
     queryset = Category.objects.all()
@@ -126,11 +127,13 @@ class GenreViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+
 class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     permission_classes = (IsAdminOrReadOnly,)
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']

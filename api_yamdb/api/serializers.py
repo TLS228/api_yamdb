@@ -51,6 +51,7 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Ошибка при создании пользователя!')
         return user
 
+
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
