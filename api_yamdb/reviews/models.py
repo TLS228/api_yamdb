@@ -5,6 +5,16 @@ from django.core.validators import (
 )
 
 
+MAX_USERNAME_LENGTH = 150
+MAX_EMAIL_LENGTH = 254
+MAX_PASSWORD_LENGTH = 128
+MIN_PASSWORD_LENGTH = 8
+MAX_BIO_LENGTH = 256
+MAX_NAME_LENGTH = 256
+MAX_SLUG_LENGTH = 50
+MAX_TEXT_LENGTH = 1000
+MIN_SCORE = 1
+MAX_SCORE = 10
 CHOICES = (
     ('user', 'обычный'),
     ('moderator', 'модератор'),
@@ -13,15 +23,20 @@ CHOICES = (
 
 
 class MyUser(AbstractUser):
-    email = models.EmailField(max_length=254,
-                              unique=True,
-                              verbose_name='Почта')
-    bio = models.CharField(max_length=256, blank=True,
-                           verbose_name='Биография')
-    role = models.CharField(max_length=16, choices=CHOICES,
-                            default='user', verbose_name='Роль')
-    confirmation_code = models.CharField(max_length=6, blank=True, null=True,
-                                         verbose_name='Код подтверждения')
+    email = models.EmailField(
+        max_length=MAX_EMAIL_LENGTH, unique=True,
+        verbose_name='Почта'
+    )
+    bio = models.CharField(
+        max_length=MAX_BIO_LENGTH, blank=True, verbose_name='Биография')
+    role = models.CharField(
+        max_length=MAX_NAME_LENGTH, choices=CHOICES,
+        default='user', verbose_name='Роль'
+    )
+    confirmation_code = models.CharField(
+        max_length=MAX_PASSWORD_LENGTH, blank=True, null=True,
+        verbose_name='Код подтверждения'
+    )
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -32,8 +47,8 @@ class MyUser(AbstractUser):
 
 
 class Category(models.Model):
-    name = models.CharField('Категория', max_length=256)
-    slug = models.SlugField('Слаг', max_length=50, unique=True)
+    name = models.CharField('Категория', max_length=MAX_NAME_LENGTH)
+    slug = models.SlugField('Слаг', max_length=MAX_SLUG_LENGTH, unique=True)
 
     class Meta:
         verbose_name = 'Категория'
@@ -44,8 +59,8 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-    name = models.CharField('Жанр', max_length=256)
-    slug = models.SlugField('Слаг', max_length=50, unique=True)
+    name = models.CharField('Жанр', max_length=MAX_NAME_LENGTH)
+    slug = models.SlugField('Слаг', max_length=MAX_SLUG_LENGTH, unique=True)
 
     class Meta:
         verbose_name = 'Жанр'
@@ -56,7 +71,7 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-    name = models.CharField('Название', max_length=256)
+    name = models.CharField('Название', max_length=MAX_NAME_LENGTH)
     year = models.IntegerField('Год выпуска')
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
@@ -88,7 +103,7 @@ class Review(models.Model):
         related_name='reviews',
         verbose_name='Произведение',
     )
-    text = models.TextField('Текст отзыва')
+    text = models.TextField('Текст отзыва', max_length=MAX_TEXT_LENGTH)
     author = models.ForeignKey(
         MyUser,
         on_delete=models.CASCADE,
@@ -96,7 +111,10 @@ class Review(models.Model):
         verbose_name='Автор отзыва',
     )
     score = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        validators=[
+            MinValueValidator(MIN_SCORE),
+            MaxValueValidator(MAX_SCORE),
+        ],
         verbose_name='Оценка',
     )
     pub_date = models.DateTimeField(
@@ -132,7 +150,7 @@ class Comment(models.Model):
         related_name='comments',
         verbose_name='Отзыв',
     )
-    text = models.TextField('Текст комментария')
+    text = models.TextField('Текст комментария', max_length=MAX_TEXT_LENGTH)
     pub_date = models.DateTimeField(
         'Дата публикации',
         auto_now_add=True,
