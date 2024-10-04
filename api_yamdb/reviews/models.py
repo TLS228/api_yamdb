@@ -1,17 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.conf import settings
-from django.core.validators import (
-    MaxValueValidator, MinValueValidator, RegexValidator
-)
+from django.core.validators import MaxValueValidator, MinValueValidator
 
+from api.mixins import username_validator
 from api.utils import get_confirmation_code
 from .constants import (
-    MAX_USERNAME_LENGTH, USERNAME_ERROR_MESSAGE, MAX_EMAIL_LENGTH,
-    MAX_EMAIL_LENGTH, MAX_BIO_LENGTH, MAX_NAME_LENGTH, MAX_SLUG_LENGTH,
-    MAX_TEXT_LENGTH, MIN_SCORE, MAX_SCORE, CONFIRMATION_CODE_LENGTH, USER,
-    MODERATOR, ADMIN, CHOICES, MAX_STR_LENGTH
+    ADMIN, CONFIRMATION_CODE_LENGTH, CHOICES, MAX_BIO_LENGTH, MAX_EMAIL_LENGTH,
+    MAX_NAME_LENGTH, MAX_SCORE, MAX_STR_LENGTH, MAX_SLUG_LENGTH,
+    MAX_TEXT_LENGTH, MAX_USERNAME_LENGTH, MIN_SCORE, MODERATOR, USER,
+    USERNAME_ERROR_MESSAGE
 )
 
 
@@ -20,13 +17,7 @@ class User(AbstractUser):
         max_length=MAX_USERNAME_LENGTH,
         unique=True,
         verbose_name='Имя пользователя',
-        validators=[
-            UnicodeUsernameValidator(),
-            RegexValidator(
-                regex=r'^((?!me).)*$',
-                message=USERNAME_ERROR_MESSAGE,
-            )
-        ],
+        validators=[username_validator],
         error_messages={'unique': USERNAME_ERROR_MESSAGE},
     )
     email = models.EmailField(
@@ -37,7 +28,7 @@ class User(AbstractUser):
         max_length=MAX_BIO_LENGTH, blank=True, verbose_name='Биография')
     role = models.CharField(
         max_length=MAX_NAME_LENGTH, choices=CHOICES,
-        default='user', verbose_name='Роль'
+        default=USER, verbose_name='Роль'
     )
     confirmation_code = models.CharField(
         max_length=CONFIRMATION_CODE_LENGTH, blank=True, null=True,
@@ -48,17 +39,16 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
-
     @property
     def is_admin(self):
-        return self.role == 'admin'
+        return self.role == ADMIN
 
     @property
     def is_moderator(self):
-        return self.role == 'moderator'
+        return self.role == MODERATOR
     
     def save(self, *args, **kwargs):
-        self.confirmation_code = get_confirmation_code(CONFIRMATION_CODE_LENGTH)
+        self.confirmation_code = get_confirmation_code()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -70,7 +60,7 @@ class Category(models.Model):
     slug = models.SlugField('Слаг', max_length=MAX_SLUG_LENGTH, unique=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ('name',)
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
@@ -98,13 +88,12 @@ class Title(models.Model):
         current_year = datetime.date.today().year
         if self.year > current_year:
             raise ValidationError(
-                {'year': f'Год выпуска не может быть больше, чем {current_year}'}
+                {'year': f'Год не может быть больше, чем {current_year}'}
             )
         return super().clean()
+
     description = models.TextField('Описание', blank=True)
-    genre = models.ManyToManyField(
-        Genre, verbose_name='Жанр'
-    )
+    genre = models.ManyToManyField(Genre, verbose_name='Жанр')
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, related_name='category',
         null=True, verbose_name='Категория'
