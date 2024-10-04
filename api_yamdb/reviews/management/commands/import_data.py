@@ -3,7 +3,7 @@ import csv
 from django.core.management.base import BaseCommand
 
 from reviews.models import (
-    Category, Comment, Genre, GenreTitle, MyUser, Review, Title,
+    Category, Comment, Genre, GenreTitle, User, Review, Title,
 )
 
 

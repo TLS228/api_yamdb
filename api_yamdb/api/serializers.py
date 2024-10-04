@@ -13,7 +13,6 @@ USER_ALREADY_REVIEWED = 'Вы уже оставляли отзыв к этому
 USER_CREATION_ERROR = 'Ошибка при создании пользователя!'
 CONFIRMATION_CODE_LENGTH = 6
 
-
 class SignupSerializer(UsernameFieldMixin):
     email = serializers.EmailField(max_length=MAX_EMAIL_LENGTH, required=True)
 
@@ -78,12 +77,18 @@ class TitleSerializerForWrite(serializers.ModelSerializer):
         queryset=Genre.objects.all(),
         slug_field='slug',
         many=True,
-        required=True
+        required=True,
+        allow_null=False,
+        allow_empty=False
     )
 
     class Meta:
         model = Title
         fields = '__all__'
+
+    def to_representation(self, instance):
+        serializer = TitleSerializerForRead(instance)
+        return serializer.data
 
 
 class ReviewSerializer(serializers.ModelSerializer):

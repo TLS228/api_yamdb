@@ -22,19 +22,7 @@ CHOICES = (
 )
 
 
-class MyUser(AbstractUser):
-<<<<<<< HEAD
-    email = models.EmailField(max_length=254,
-                              unique=True,
-                              verbose_name='Почта')
-    bio = models.CharField(max_length=256, blank=True,
-                           verbose_name='Биография')
-    role = models.CharField(max_length=16, choices=CHOICES,
-                            default='user', verbose_name='Роль')
-    confirmation_code = models.CharField(max_length=6, blank=True, null=True,
-                                         verbose_name='Код подтверждения')
-    username = models.CharField(max_length=150, unique=True)
-=======
+class User(AbstractUser):
     email = models.EmailField(
         max_length=MAX_EMAIL_LENGTH, unique=True,
         verbose_name='Почта'
@@ -49,11 +37,18 @@ class MyUser(AbstractUser):
         max_length=MAX_PASSWORD_LENGTH, blank=True, null=True,
         verbose_name='Код подтверждения'
     )
->>>>>>> a166a094997e771170a1f9476a370f26cbfc450f
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+
+    @property
+    def is_moderator(self):
+        return self.role == 'moderator'
 
     def __str__(self):
         return self.username
@@ -64,6 +59,7 @@ class Category(models.Model):
     slug = models.SlugField('Слаг', max_length=MAX_SLUG_LENGTH, unique=True)
 
     class Meta:
+        ordering = ['name']
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
@@ -85,7 +81,14 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField('Название', max_length=MAX_NAME_LENGTH)
-    year = models.IntegerField('Год выпуска')
+    year = models.PositiveSmallIntegerField('Год выпуска')
+
+    def clean(self):
+        current_year = datetime.date.today().year
+        if self.year > current_year:
+            raise ValidationError(
+                {'year': f'Год выпуска не может быть больше, чем {current_year}'})
+        return super().clean()
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
         Genre, through='GenreTitle', related_name='titles',
@@ -116,9 +119,9 @@ class Review(models.Model):
         related_name='reviews',
         verbose_name='Произведение',
     )
-    text = models.TextField('Текст отзыва', max_length=MAX_TEXT_LENGTH)
+    text = models.TextField('Текст отзыва')
     author = models.ForeignKey(
-        MyUser,
+        User,
         on_delete=models.CASCADE,
         related_name='reviews',
         verbose_name='Автор отзыва',
@@ -152,7 +155,7 @@ class Review(models.Model):
 
 class Comment(models.Model):
     author = models.ForeignKey(
-        MyUser,
+        User,
         on_delete=models.CASCADE,
         related_name='comments',
         verbose_name='Автор комментария',
@@ -163,7 +166,7 @@ class Comment(models.Model):
         related_name='comments',
         verbose_name='Отзыв',
     )
-    text = models.TextField('Текст комментария', max_length=MAX_TEXT_LENGTH)
+    text = models.TextField('Текст комментария')
     pub_date = models.DateTimeField(
         'Дата публикации',
         auto_now_add=True,
