@@ -4,11 +4,11 @@ from django.db.utils import IntegrityError
 from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
 
-from reviews.models import Category, Comment, Genre, Review, Title
 from reviews.constants import (
     CONFIRMATION_CODE_LENGTH, FROM_EMAIL, MAX_EMAIL_LENGTH, SUBJECT,
     TOKEN_ERROR_MESSAGE, USER_ALREADY_REVIEWED_MESSAGE, USERNAME_ERROR_MESSAGE
 )
+from reviews.models import Category, Comment, Genre, Review, Title
 from .mixins import UsernameFieldMixin, UsernameValidatorMixin
 
 User = get_user_model()
