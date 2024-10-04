@@ -15,6 +15,7 @@ MAX_SLUG_LENGTH = 50
 MAX_TEXT_LENGTH = 1000
 MIN_SCORE = 1
 MAX_SCORE = 10
+CONFIRMATION_CODE_LENGTH = 6
 CHOICES = (
     ('user', 'обычный'),
     ('moderator', 'модератор'),

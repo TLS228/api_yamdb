@@ -4,14 +4,16 @@ from rest_framework import serializers
 
 from .mixins import UsernameFieldMixin
 from reviews.models import (
-    Category, Comment, Genre, Review, Title, MAX_EMAIL_LENGTH
+    Category, Comment, Genre, Review, Title,
+    MAX_EMAIL_LENGTH, CONFIRMATION_CODE_LENGTH
 )
 
 User = get_user_model()
 
 USER_ALREADY_REVIEWED = 'Вы уже оставляли отзыв к этому произведению!'
 USER_CREATION_ERROR = 'Ошибка при создании пользователя!'
-CONFIRMATION_CODE_LENGTH = 6
+
+
 
 class SignupSerializer(UsernameFieldMixin):
     email = serializers.EmailField(max_length=MAX_EMAIL_LENGTH, required=True)
