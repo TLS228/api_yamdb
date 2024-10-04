@@ -1,10 +1,15 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.conf import settings
 from django.core.validators import (
-    MaxValueValidator, MinValueValidator
+    MaxValueValidator, MinValueValidator, RegexValidator
 )
 
+from api.utils import get_confirmation_code
 
+
+MAX_STR_LENGTH = 15
 MAX_USERNAME_LENGTH = 150
 MAX_EMAIL_LENGTH = 254
 MAX_PASSWORD_LENGTH = 128
@@ -17,10 +22,28 @@ MIN_SCORE = 1
 MAX_SCORE = 10
 CONFIRMATION_CODE_LENGTH = 6
 CHOICES = (
-    ('user', 'обычный'),
-    ('moderator', 'модератор'),
-    ('admin', 'администратор')
+    (settings.USER, 'обычный'),
+    (settings.MODERATOR, 'модератор'),
+    (settings.ADMIN, 'администратор')
 )
+USERNAME_REGEX_ERROR_MESSAGE = 'Имя пользователя не может быть "me"'
+USERNAME_ERROR_MESSAGE = 'Пользователь с таким именем уже существует.'
+
+
+class User(AbstractUser):
+    username = models.CharField(
+        max_length=MAX_USERNAME_LENGTH,
+        unique=True,
+        verbose_name='Имя пользователя',
+        validators=[
+            UnicodeUsernameValidator(),
+            RegexValidator(
+                regex=r'^((?!me).)*$',
+                message=USERNAME_REGEX_ERROR_MESSAGE,
+            )
+        ],
+        error_messages={'unique': USERNAME_ERROR_MESSAGE},
+    )
 
 
 class User(AbstractUser):
@@ -43,6 +66,7 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
+
     @property
     def is_admin(self):
         return self.role == 'admin'
@@ -50,9 +74,13 @@ class User(AbstractUser):
     @property
     def is_moderator(self):
         return self.role == 'moderator'
+    
+    def save(self, *args, **kwargs):
+        self.confirmation_code = get_confirmation_code()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.username
+        return self.username[:MAX_STR_LENGTH]
 
 
 class Category(models.Model):
@@ -92,8 +120,7 @@ class Title(models.Model):
         return super().clean()
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
-        Genre, through='GenreTitle', related_name='titles',
-        verbose_name='Жанр'
+        Genre, verbose_name='Жанр'
     )
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, related_name='category',
@@ -106,11 +133,6 @@ class Title(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class GenreTitle(models.Model):
-    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
-    title = models.ForeignKey(Title, on_delete=models.CASCADE)
 
 
 class Review(models.Model):
@@ -179,4 +201,4 @@ class Comment(models.Model):
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
-        return self.text[:15]
+        return self.text[:MAX_STR_LENGTH]
