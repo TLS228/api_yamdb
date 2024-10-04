@@ -12,6 +12,7 @@ class TitleAdmin(admin.ModelAdmin):
     list_filter = ('year',)
     empty_value_display = '-empty-'
 
+
 admin.site.register(Title, TitleAdmin)
 admin.site.register(Review)
 admin.site.register(Comment)

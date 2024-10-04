@@ -1,13 +1,16 @@
+import datetime
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
+from rest_framework.serializers import ValidationError
 
 from api.mixins import username_validator
 from api.utils import get_confirmation_code
 from .constants import (
     ADMIN, CONFIRMATION_CODE_LENGTH, CHOICES, MAX_BIO_LENGTH, MAX_EMAIL_LENGTH,
     MAX_NAME_LENGTH, MAX_SCORE, MAX_STR_LENGTH, MAX_SLUG_LENGTH,
-    MAX_TEXT_LENGTH, MAX_USERNAME_LENGTH, MIN_SCORE, MODERATOR, USER,
+    MAX_USERNAME_LENGTH, MIN_SCORE, MODERATOR, USER,
     USERNAME_ERROR_MESSAGE
 )
 
@@ -46,7 +49,7 @@ class User(AbstractUser):
     @property
     def is_moderator(self):
         return self.role == MODERATOR
-    
+
     def save(self, *args, **kwargs):
         self.confirmation_code = get_confirmation_code()
         super().save(*args, **kwargs)
