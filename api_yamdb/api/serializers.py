@@ -1,28 +1,24 @@
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.db.utils import IntegrityError
 from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
-from django.core.mail import send_mail
 
-from .mixins import UsernameFieldMixin
-from reviews.models import (
-    Category, Comment, Genre, Review, Title,
-    MAX_EMAIL_LENGTH, CONFIRMATION_CODE_LENGTH
+from reviews.constants import (
+    CONFIRMATION_CODE_LENGTH, FROM_EMAIL, MAX_EMAIL_LENGTH, SUBJECT,
+    TOKEN_ERROR_MESSAGE, USER_ALREADY_REVIEWED_MESSAGE, USERNAME_ERROR_MESSAGE
 )
+from reviews.models import Category, Comment, Genre, Review, Title
+from .mixins import UsernameFieldMixin, UsernameValidatorMixin
 
 User = get_user_model()
 
-ERROR_MSG = 'Такой пользователь уже зарегистрирован!'
-SUBJECT = 'Код подтверждения'
-FROM_EMAIL = 'example@ex.ru'
-USER_ALREADY_REVIEWED = 'Вы уже оставляли отзыв к этому произведению!'
-USER_CREATION_ERROR = 'Ошибка при создании пользователя!'
-CONFIRMATION_CODE_LENGTH = 6
-TOKEN_ERROR = {'confirmation_code': 'Неверный код подтверждения!'}
-
 
 class SignupSerializer(UsernameFieldMixin):
-    email = serializers.EmailField(max_length=MAX_EMAIL_LENGTH, required=True)
+    email = serializers.EmailField(
+        max_length=MAX_EMAIL_LENGTH,
+        required=True
+    )
 
     def create(self, validated_data):
         email = validated_data['email']
@@ -33,7 +29,7 @@ class SignupSerializer(UsernameFieldMixin):
                 username=username
             )
         except IntegrityError:
-            raise serializers.ValidationError(ERROR_MSG)
+            raise serializers.ValidationError(USERNAME_ERROR_MESSAGE)
         send_mail(
             subject=SUBJECT,
             message=current_user.confirmation_code,
@@ -45,30 +41,25 @@ class SignupSerializer(UsernameFieldMixin):
 
 class TokenSerializer(UsernameFieldMixin):
     confirmation_code = serializers.CharField(
-        max_length=CONFIRMATION_CODE_LENGTH, required=True
+        max_length=CONFIRMATION_CODE_LENGTH,
+        required=True
     )
 
     def validate(self, data):
-        username = data['username']
-        confirmation_code = data['confirmation_code']
+        username = data.get('username')
+        confirmation_code = data.get('confirmation_code')
         user = get_object_or_404(User, username=username)
         if user.confirmation_code != confirmation_code:
-            raise serializers.ValidationError(TOKEN_ERROR)
+            raise serializers.ValidationError(TOKEN_ERROR_MESSAGE)
         return data
 
-class UserSerializer(UsernameFieldMixin, serializers.ModelSerializer):
+
+class UserSerializer(UsernameValidatorMixin, serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
             'username', 'email', 'first_name', 'last_name', 'bio', 'role',
         )
-
-    def create(self, validated_data):
-        try:
-            user = User.objects.create(**validated_data)
-        except IntegrityError:
-            raise serializers.ValidationError(USER_CREATION_ERROR)
-        return user
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -86,19 +77,13 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleSerializerForRead(serializers.ModelSerializer):
     genre = GenreSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)
-    rating = serializers.SerializerMethodField()
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
         fields = (
             'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
         )
-
-    def get_rating(self, obj):
-        scores = Review.objects.filter(title=obj).values_list('score',
-                                                              flat=True)
-
-        return round(sum(scores) / len(scores)) if scores else None
 
 
 class TitleSerializerForWrite(serializers.ModelSerializer):
@@ -120,10 +105,6 @@ class TitleSerializerForWrite(serializers.ModelSerializer):
         model = Title
         fields = '__all__'
 
-    def to_representation(self, instance):
-        serializer = TitleSerializerForRead(instance)
-        return serializer.data
-
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
@@ -141,7 +122,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         author = self.context.get('request').user
         title_id = self.context.get('view').kwargs.get('title_id')
         if Review.objects.filter(author=author, title_id=title_id).exists():
-            raise serializers.ValidationError(USER_ALREADY_REVIEWED)
+            raise serializers.ValidationError(USER_ALREADY_REVIEWED_MESSAGE)
         return data
 
 
