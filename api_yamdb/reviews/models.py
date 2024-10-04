@@ -20,6 +20,7 @@ MAX_SLUG_LENGTH = 50
 MAX_TEXT_LENGTH = 1000
 MIN_SCORE = 1
 MAX_SCORE = 10
+CONFIRMATION_CODE_LENGTH = 6
 CHOICES = (
     (settings.USER, 'обычный'),
     (settings.MODERATOR, 'модератор'),
@@ -44,6 +45,8 @@ class User(AbstractUser):
         error_messages={'unique': USERNAME_ERROR_MESSAGE},
     )
 
+
+class User(AbstractUser):
     email = models.EmailField(
         max_length=MAX_EMAIL_LENGTH, unique=True,
         verbose_name='Почта'
@@ -63,6 +66,15 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
+
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+
+    @property
+    def is_moderator(self):
+        return self.role == 'moderator'
+    
     def save(self, *args, **kwargs):
         self.confirmation_code = get_confirmation_code()
         super().save(*args, **kwargs)
@@ -76,6 +88,7 @@ class Category(models.Model):
     slug = models.SlugField('Слаг', max_length=MAX_SLUG_LENGTH, unique=True)
 
     class Meta:
+        ordering = ['name']
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
@@ -97,7 +110,14 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField('Название', max_length=MAX_NAME_LENGTH)
-    year = models.IntegerField('Год выпуска')
+    year = models.PositiveSmallIntegerField('Год выпуска')
+
+    def clean(self):
+        current_year = datetime.date.today().year
+        if self.year > current_year:
+            raise ValidationError(
+                {'year': f'Год выпуска не может быть больше, чем {current_year}'})
+        return super().clean()
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
         Genre, verbose_name='Жанр'
@@ -122,7 +142,7 @@ class Review(models.Model):
         related_name='reviews',
         verbose_name='Произведение',
     )
-    text = models.TextField('Текст отзыва', max_length=MAX_TEXT_LENGTH)
+    text = models.TextField('Текст отзыва')
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -169,7 +189,7 @@ class Comment(models.Model):
         related_name='comments',
         verbose_name='Отзыв',
     )
-    text = models.TextField('Текст комментария', max_length=MAX_TEXT_LENGTH)
+    text = models.TextField('Текст комментария')
     pub_date = models.DateTimeField(
         'Дата публикации',
         auto_now_add=True,

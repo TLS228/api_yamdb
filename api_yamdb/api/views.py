@@ -13,7 +13,9 @@ from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import Category, Genre, Review, Title
 from .filters import TitleFilter
 from .mixins import CategoryGenreMixin
-from .permissions import AdminModeratorAuthor, IsAdmin, IsAdminOrReadOnly
+from .permissions import (
+    IsAdminModeratorAuthorOrReadOnly, IsAdmin, IsAdminOrReadOnly
+)
 from .serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer, ReviewSerializer,
     SignupSerializer, TitleSerializerForRead, TitleSerializerForWrite,
@@ -61,12 +63,8 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(
             user, data=request.data, partial=True
         )
-        if serializer.is_valid():
-            serializer.save(role=self.request.user.role)
-        else:
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(role=self.request.user.role)
         return Response(serializer.data)
 
 
@@ -97,7 +95,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
     serializer_class = ReviewSerializer
-    permission_classes = (AdminModeratorAuthor,)
+    permission_classes = (IsAdminModeratorAuthorOrReadOnly,)
 
     def get_queryset(self):
         return self.get_title().reviews.all()
@@ -112,7 +110,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
     serializer_class = CommentSerializer
-    permission_classes = (AdminModeratorAuthor,)
+    permission_classes = (IsAdminModeratorAuthorOrReadOnly,)
 
     def get_queryset(self):
         return self.get_review().comments.all()

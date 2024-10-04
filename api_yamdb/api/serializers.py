@@ -6,7 +6,8 @@ from django.core.mail import send_mail
 
 from .mixins import UsernameFieldMixin
 from reviews.models import (
-    Category, Comment, Genre, Review, Title, MAX_EMAIL_LENGTH
+    Category, Comment, Genre, Review, Title,
+    MAX_EMAIL_LENGTH, CONFIRMATION_CODE_LENGTH
 )
 
 User = get_user_model()
@@ -110,12 +111,18 @@ class TitleSerializerForWrite(serializers.ModelSerializer):
         queryset=Genre.objects.all(),
         slug_field='slug',
         many=True,
-        required=True
+        required=True,
+        allow_null=False,
+        allow_empty=False
     )
 
     class Meta:
         model = Title
         fields = '__all__'
+
+    def to_representation(self, instance):
+        serializer = TitleSerializerForRead(instance)
+        return serializer.data
 
 
 class ReviewSerializer(serializers.ModelSerializer):
