@@ -1,10 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.conf import settings
 from django.core.validators import (
-    MaxValueValidator, MinValueValidator
+    MaxValueValidator, MinValueValidator, RegexValidator
 )
 
 
+MAX_STR_LENGTH = 15
 MAX_USERNAME_LENGTH = 150
 MAX_EMAIL_LENGTH = 254
 MAX_PASSWORD_LENGTH = 128
@@ -16,13 +19,29 @@ MAX_TEXT_LENGTH = 1000
 MIN_SCORE = 1
 MAX_SCORE = 10
 CHOICES = (
-    ('user', 'обычный'),
-    ('moderator', 'модератор'),
-    ('admin', 'администратор')
+    (settings.USER, 'обычный'),
+    (settings.MODERATOR, 'модератор'),
+    (settings.ADMIN, 'администратор')
 )
+USERNAME_REGEX_ERROR_MESSAGE = 'Имя пользователя не может быть "me"'
+USERNAME_ERROR_MESSAGE = 'Пользователь с таким именем уже существует.'
 
 
-class MyUser(AbstractUser):
+class User(AbstractUser):
+    username = models.CharField(
+        max_length=MAX_USERNAME_LENGTH,
+        unique=True,
+        verbose_name='Имя пользователя',
+        validators=[
+            UnicodeUsernameValidator(),
+            RegexValidator(
+                regex=r'^((?!me).)*$',
+                message=USERNAME_REGEX_ERROR_MESSAGE,
+            )
+        ],
+        error_messages={'unique': USERNAME_ERROR_MESSAGE},
+    )
+
     email = models.EmailField(
         max_length=MAX_EMAIL_LENGTH, unique=True,
         verbose_name='Почта'
@@ -42,8 +61,9 @@ class MyUser(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
+
     def __str__(self):
-        return self.username
+        return self.username[:MAX_STR_LENGTH]
 
 
 class Category(models.Model):
@@ -75,8 +95,7 @@ class Title(models.Model):
     year = models.IntegerField('Год выпуска')
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
-        Genre, through='GenreTitle', related_name='titles',
-        verbose_name='Жанр'
+        Genre, verbose_name='Жанр'
     )
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, related_name='category',
@@ -91,11 +110,6 @@ class Title(models.Model):
         return self.name
 
 
-class GenreTitle(models.Model):
-    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
-    title = models.ForeignKey(Title, on_delete=models.CASCADE)
-
-
 class Review(models.Model):
     title = models.ForeignKey(
         Title,
@@ -105,7 +119,7 @@ class Review(models.Model):
     )
     text = models.TextField('Текст отзыва', max_length=MAX_TEXT_LENGTH)
     author = models.ForeignKey(
-        MyUser,
+        User,
         on_delete=models.CASCADE,
         related_name='reviews',
         verbose_name='Автор отзыва',
@@ -139,7 +153,7 @@ class Review(models.Model):
 
 class Comment(models.Model):
     author = models.ForeignKey(
-        MyUser,
+        User,
         on_delete=models.CASCADE,
         related_name='comments',
         verbose_name='Автор комментария',
@@ -162,4 +176,4 @@ class Comment(models.Model):
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
-        return self.text[:15]
+        return self.text[:MAX_STR_LENGTH]
