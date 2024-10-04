@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     'api.apps.ApiConfig',
 ]
 
-AUTH_USER_MODEL = 'reviews.MyUser'
+AUTH_USER_MODEL = 'reviews.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
