@@ -17,7 +17,7 @@ class IsAdminModeratorAuthorOrReadOnly(BasePermission):
             or request.user.is_staff
             or request.user.is_admin
             or request.user.is_moderator
-            )
+        )
 
 
 class IsAdmin(IsAdminUser):
