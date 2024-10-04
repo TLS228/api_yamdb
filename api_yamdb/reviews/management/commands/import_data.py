@@ -28,10 +28,14 @@ class Command(BaseCommand):
                     if 'author' in row:
                         row['author'] = User.objects.get(id=row['author'])
                     if 'category' in row:
-                        row['category'] = Category.objects.get(id=row['category'])
+                        row['category'] = Category.objects.get(
+                            id=row['category']
+                        )
                     obj, created = model.objects.get_or_create(**row)
                     if created:
                         obj.save()
                 self.stdout.write(
-                    self.style.SUCCESS(f'{model.__name__} импортированы успешно')
+                    self.style.SUCCESS(
+                        f'{model.__name__} импортированы успешно'
+                    )
                 )

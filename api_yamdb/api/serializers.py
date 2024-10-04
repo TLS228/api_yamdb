@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db.utils import IntegrityError
 from rest_framework import serializers
+from rest_framework.generics import get_object_or_404
+from django.core.mail import send_mail
 
 from .mixins import UsernameFieldMixin
 from reviews.models import (
@@ -9,19 +11,49 @@ from reviews.models import (
 
 User = get_user_model()
 
+ERROR_MSG = 'Такой пользователь уже зарегистрирован!'
+SUBJECT = 'Код подтверждения'
+FROM_EMAIL = 'example@ex.ru'
 USER_ALREADY_REVIEWED = 'Вы уже оставляли отзыв к этому произведению!'
 USER_CREATION_ERROR = 'Ошибка при создании пользователя!'
 CONFIRMATION_CODE_LENGTH = 6
+TOKEN_ERROR = {'confirmation_code': 'Неверный код подтверждения!'}
 
 
 class SignupSerializer(UsernameFieldMixin):
     email = serializers.EmailField(max_length=MAX_EMAIL_LENGTH, required=True)
 
+    def create(self, validated_data):
+        email = validated_data['email']
+        username = validated_data['username']
+        try:
+            current_user, current_status = User.objects.get_or_create(
+                email=email,
+                username=username
+            )
+        except IntegrityError:
+            raise serializers.ValidationError(ERROR_MSG)
+        send_mail(
+            subject=SUBJECT,
+            message=current_user.confirmation_code,
+            from_email=FROM_EMAIL,
+            recipient_list=(email,)
+        )
+        return current_user
+
 
 class TokenSerializer(UsernameFieldMixin):
     confirmation_code = serializers.CharField(
-        max_length=CONFIRMATION_CODE_LENGTH, required=True)
+        max_length=CONFIRMATION_CODE_LENGTH, required=True
+    )
 
+    def validate(self, data):
+        username = data['username']
+        confirmation_code = data['confirmation_code']
+        user = get_object_or_404(User, username=username)
+        if user.confirmation_code != confirmation_code:
+            raise serializers.ValidationError(TOKEN_ERROR)
+        return data
 
 class UserSerializer(serializers.ModelSerializer, UsernameFieldMixin):
     class Meta:

@@ -6,6 +6,8 @@ from django.core.validators import (
     MaxValueValidator, MinValueValidator, RegexValidator
 )
 
+from api.utils import get_confirmation_code
+
 
 MAX_STR_LENGTH = 15
 MAX_USERNAME_LENGTH = 150
@@ -61,6 +63,9 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
+    def save(self, *args, **kwargs):
+        self.confirmation_code = get_confirmation_code()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.username[:MAX_STR_LENGTH]
