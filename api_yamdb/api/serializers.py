@@ -2,18 +2,25 @@ from django.contrib.auth import get_user_model
 from django.db.utils import IntegrityError
 from rest_framework import serializers
 
-from reviews.models import Category, Comment, Genre, Review, Title
 from .mixins import UsernameFieldMixin
+from reviews.models import (
+    Category, Comment, Genre, Review, Title, MAX_EMAIL_LENGTH
+)
 
 User = get_user_model()
 
+USER_ALREADY_REVIEWED = 'Вы уже оставляли отзыв к этому произведению!'
+USER_CREATION_ERROR = 'Ошибка при создании пользователя!'
+CONFIRMATION_CODE_LENGTH = 6
+
 
 class SignupSerializer(UsernameFieldMixin):
-    email = serializers.EmailField(max_length=254, required=True)
+    email = serializers.EmailField(max_length=MAX_EMAIL_LENGTH, required=True)
 
 
 class TokenSerializer(UsernameFieldMixin):
-    confirmation_code = serializers.CharField(max_length=6, required=True)
+    confirmation_code = serializers.CharField(
+        max_length=CONFIRMATION_CODE_LENGTH, required=True)
 
 
 class UserSerializer(serializers.ModelSerializer, UsernameFieldMixin):
@@ -27,8 +34,7 @@ class UserSerializer(serializers.ModelSerializer, UsernameFieldMixin):
         try:
             user = User.objects.create(**validated_data)
         except IntegrityError:
-            raise serializers.ValidationError(
-                'Ошибка при создании пользователя!')
+            raise serializers.ValidationError(USER_CREATION_ERROR)
         return user
 
 
@@ -96,9 +102,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         author = self.context.get('request').user
         title_id = self.context.get('view').kwargs.get('title_id')
         if Review.objects.filter(author=author, title_id=title_id).exists():
-            raise serializers.ValidationError(
-                'Вы уже оставляли отзыв к этому произведению!'
-            )
+            raise serializers.ValidationError(USER_ALREADY_REVIEWED)
         return data
 
 

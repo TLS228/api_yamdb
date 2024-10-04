@@ -6,17 +6,21 @@ from rest_framework.response import Response
 from .permissions import IsAdminOrReadOnly
 
 
+USERNAME_MAX_LENGTH = 150
+USERNAME_REGEX = r'^[\w.@+-]+\Z'
+USERNAME_ME_ERROR_MESSAGE = 'Запрещено использовать это имя!'
+
+
 class UsernameFieldMixin(serializers.Serializer):
     username = serializers.CharField(
-        max_length=150,
-        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
+        max_length=USERNAME_MAX_LENGTH,
+        validators=[RegexValidator(regex=USERNAME_REGEX)],
         required=True
     )
 
     def validate_username(self, value):
         if value == 'me':
-            raise serializers.ValidationError(
-                'Запрещено использовать это имя!')
+            raise serializers.ValidationError(USERNAME_ME_ERROR_MESSAGE)
 
         return value
 

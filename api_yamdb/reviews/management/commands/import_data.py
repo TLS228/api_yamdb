@@ -6,6 +6,7 @@ from reviews.models import (
     Category, Comment, Genre, GenreTitle, MyUser, Review, Title,
 )
 
+
 class Command(BaseCommand):
     help = 'Импортирует данные из CSV-файлов'
 
