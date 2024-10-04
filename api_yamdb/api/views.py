@@ -12,7 +12,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from reviews.models import Category, Genre, Review, Title
 from .filters import TitleFilter
-from .mixins import CategoryGenreMixin
+from .mixins import CategoryGenreViewSet
 from .permissions import (
     IsAdminModeratorAuthorOrReadOnly, IsAdmin, IsAdminOrReadOnly
 )
@@ -68,12 +68,12 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class CategoryViewSet(CategoryGenreMixin):
+class CategoryViewSet(CategoryGenreViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
-class GenreViewSet(CategoryGenreMixin):
+class GenreViewSet(CategoryGenreViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 

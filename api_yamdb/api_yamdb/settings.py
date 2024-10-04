@@ -123,7 +123,3 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
-
-USER = 'user'
-MODERATOR = 'moderator'
-ADMIN = 'admin'

@@ -56,7 +56,7 @@ class TokenSerializer(UsernameFieldMixin):
             raise serializers.ValidationError(TOKEN_ERROR)
         return data
 
-class UserSerializer(serializers.ModelSerializer, UsernameFieldMixin):
+class UserSerializer(UsernameFieldMixin, serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (

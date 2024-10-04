@@ -7,27 +7,12 @@ from django.core.validators import (
 )
 
 from api.utils import get_confirmation_code
-
-
-MAX_STR_LENGTH = 15
-MAX_USERNAME_LENGTH = 150
-MAX_EMAIL_LENGTH = 254
-MAX_PASSWORD_LENGTH = 128
-MIN_PASSWORD_LENGTH = 8
-MAX_BIO_LENGTH = 256
-MAX_NAME_LENGTH = 256
-MAX_SLUG_LENGTH = 50
-MAX_TEXT_LENGTH = 1000
-MIN_SCORE = 1
-MAX_SCORE = 10
-CONFIRMATION_CODE_LENGTH = 6
-CHOICES = (
-    (settings.USER, 'обычный'),
-    (settings.MODERATOR, 'модератор'),
-    (settings.ADMIN, 'администратор')
+from .constants import (
+    MAX_USERNAME_LENGTH, USERNAME_ERROR_MESSAGE, MAX_EMAIL_LENGTH,
+    MAX_EMAIL_LENGTH, MAX_BIO_LENGTH, MAX_NAME_LENGTH, MAX_SLUG_LENGTH,
+    MAX_TEXT_LENGTH, MIN_SCORE, MAX_SCORE, CONFIRMATION_CODE_LENGTH, USER,
+    MODERATOR, ADMIN, CHOICES, MAX_STR_LENGTH
 )
-USERNAME_REGEX_ERROR_MESSAGE = 'Имя пользователя не может быть "me"'
-USERNAME_ERROR_MESSAGE = 'Пользователь с таким именем уже существует.'
 
 
 class User(AbstractUser):
@@ -39,14 +24,11 @@ class User(AbstractUser):
             UnicodeUsernameValidator(),
             RegexValidator(
                 regex=r'^((?!me).)*$',
-                message=USERNAME_REGEX_ERROR_MESSAGE,
+                message=USERNAME_ERROR_MESSAGE,
             )
         ],
         error_messages={'unique': USERNAME_ERROR_MESSAGE},
     )
-
-
-class User(AbstractUser):
     email = models.EmailField(
         max_length=MAX_EMAIL_LENGTH, unique=True,
         verbose_name='Почта'
@@ -58,7 +40,7 @@ class User(AbstractUser):
         default='user', verbose_name='Роль'
     )
     confirmation_code = models.CharField(
-        max_length=MAX_PASSWORD_LENGTH, blank=True, null=True,
+        max_length=CONFIRMATION_CODE_LENGTH, blank=True, null=True,
         verbose_name='Код подтверждения'
     )
 
@@ -76,7 +58,7 @@ class User(AbstractUser):
         return self.role == 'moderator'
     
     def save(self, *args, **kwargs):
-        self.confirmation_code = get_confirmation_code()
+        self.confirmation_code = get_confirmation_code(CONFIRMATION_CODE_LENGTH)
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -116,7 +98,8 @@ class Title(models.Model):
         current_year = datetime.date.today().year
         if self.year > current_year:
             raise ValidationError(
-                {'year': f'Год выпуска не может быть больше, чем {current_year}'})
+                {'year': f'Год выпуска не может быть больше, чем {current_year}'}
+            )
         return super().clean()
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
