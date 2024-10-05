@@ -1,8 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import (MaxValueValidator, MinValueValidator,
-                                    ValidationError
-                                    )
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from api.utils import get_confirmation_code
 from api.validators import username_validator, year_validator
