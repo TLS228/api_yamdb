@@ -1,5 +1,4 @@
 from django.contrib import admin
-
 from django.contrib.auth import get_user_model
 
 from .models import Title, Review, Comment, Genre, Category
@@ -12,6 +11,7 @@ class TitleAdmin(admin.ModelAdmin):
     search_fields = ('name', 'year')
     list_filter = ('year',)
     empty_value_display = '-empty-'
+
 
 admin.site.register(Title, TitleAdmin)
 admin.site.register(Review)

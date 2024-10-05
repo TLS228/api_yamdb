@@ -1,10 +1,9 @@
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
-from django.db.utils import IntegrityError
+from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import (
-    filters, permissions, serializers, status, viewsets
+    filters, permissions, status, viewsets
 )
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
@@ -23,69 +22,36 @@ from .serializers import (
     SignupSerializer, TitleSerializerForRead, TitleSerializerForWrite,
     TokenSerializer, UserSerializer
 )
-from .utils import get_confirmation_code
 
 User = get_user_model()
-
-ERROR_MSG = 'Такой пользователь уже зарегистрирован!'
-SUBJECT = 'Код подтверждения'
-FROM_EMAIL = 'example@ex.ru'
 
 
 class SignupView(APIView):
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            username = serializer.validated_data['username']
-            try:
-                current_user, current_status = User.objects.get_or_create(
-                    email=email,
-                    username=username
-                )
-            except IntegrityError:
-                raise serializers.ValidationError(ERROR_MSG)
-            current_user.confirmation_code = get_confirmation_code()
-            send_mail(
-                subject=SUBJECT,
-                message=current_user.confirmation_code,
-                from_email=FROM_EMAIL,
-                recipient_list=(email,)
-            )
-            current_user.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TokenObtainView(APIView):
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
-        if serializer.is_valid():
-            confirmation_code = serializer.validated_data['confirmation_code']
-            username = serializer.validated_data['username']
-            user = get_object_or_404(User, username=username)
-            if user.confirmation_code != confirmation_code:
-                return Response(
-                    {"error": "Неверный код подтверждения!"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            token = AccessToken.for_user(user)
-            return Response({"token": f"{token}"})
-        else:
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer.is_valid(raise_exception=True)
+        user = get_object_or_404(
+            User,
+            username=serializer.validated_data['username']
+        )
+        token = AccessToken.for_user(user)
+        return Response({"token": f"{token}"})
 
 
 class UserViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
     queryset = User.objects.all()
-    permission_classes = (IsAdmin,)
     serializer_class = UserSerializer
     lookup_field = 'username'
+    permission_classes = (IsAdmin,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
 
@@ -118,7 +84,7 @@ class GenreViewSet(CategoryGenreViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
-    queryset = Title.objects.all()
+    queryset = Title.objects.all().annotate(rating=Avg("reviews__score"))
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
     filterset_class = TitleFilter
