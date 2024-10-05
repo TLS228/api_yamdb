@@ -2,8 +2,9 @@ import datetime
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MaxValueValidator, MinValueValidator, ValidationError
-from rest_framework.serializers import ValidationError as DRFValidationError
+from django.core.validators import (MaxValueValidator, MinValueValidator,
+                                    ValidationError
+                                    )
 
 from api.mixins import username_validator
 from api.utils import get_confirmation_code
