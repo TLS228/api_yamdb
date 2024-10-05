@@ -4,8 +4,7 @@ from rest_framework import serializers
 
 from .mixins import UsernameFieldMixin
 from reviews.models import (
-    Category, Comment, Genre, Review, Title,
-    MAX_EMAIL_LENGTH, CONFIRMATION_CODE_LENGTH
+    Category, Comment, Genre, Review, Title, MAX_EMAIL_LENGTH, CONFIRMATION_CODE_LENGTH
 )
 
 User = get_user_model()
