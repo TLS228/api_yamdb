@@ -23,15 +23,11 @@ class IsAdminModeratorAuthorOrReadOnly(BasePermission):
 
 class IsAdmin(BasePermission):
     def has_permission(self, request, view):
-        if request.user.is_superuser:
-            return True
         return request.user.is_authenticated and request.user.is_admin
 
 
 class IsAdminOrReadOnly(BasePermission):
     def has_permission(self, request, view):
-        if request.user.is_superuser:
-            return True
         return (
             request.method in SAFE_METHODS
             or (request.user.is_authenticated and request.user.is_admin)
