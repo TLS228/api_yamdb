@@ -1,13 +1,11 @@
-import datetime
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import (MaxValueValidator, MinValueValidator,
                                     ValidationError
                                     )
 
-from api.mixins import username_validator
 from api.utils import get_confirmation_code
+from api.validators import username_validator, year_validator
 from .constants import (
     ADMIN, CONFIRMATION_CODE_LENGTH, CHOICES, MAX_BIO_LENGTH, MAX_EMAIL_LENGTH,
     MAX_NAME_LENGTH, MAX_SCORE, MAX_STR_LENGTH, MAX_SLUG_LENGTH,
@@ -74,21 +72,15 @@ class BaseCategoryGenre(models.Model):
 
 
 class Category(BaseCategoryGenre):
-    class Meta:
+    class Meta(BaseCategoryGenre.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
 
 class Genre(BaseCategoryGenre):
-    class Meta:
+    class Meta(BaseCategoryGenre.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
-
-
-def year_validator(value):
-    current_year = datetime.date.today().year
-    if value > current_year:
-        raise ValidationError(f'Год не может быть больше, чем {current_year}')
 
 
 class Title(models.Model):

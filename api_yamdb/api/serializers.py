@@ -85,12 +85,6 @@ class TitleSerializerForRead(serializers.ModelSerializer):
             'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
         )
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        if representation.get('rating') is None:
-            representation['rating'] = None
-        return representation
-
 
 class TitleSerializerForWrite(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
@@ -110,6 +104,9 @@ class TitleSerializerForWrite(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = '__all__'
+
+    def to_representation(self, instance):
+        return TitleSerializerForRead(instance).data
 
 
 class ReviewSerializer(serializers.ModelSerializer):
