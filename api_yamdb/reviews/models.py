@@ -2,8 +2,8 @@ import datetime
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MaxValueValidator, MinValueValidator
-from rest_framework.serializers import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator, ValidationError
+from rest_framework.serializers import ValidationError as DRFValidationError
 
 from api.mixins import username_validator
 from api.utils import get_confirmation_code
@@ -28,13 +28,14 @@ class User(AbstractUser):
         verbose_name='Почта'
     )
     bio = models.CharField(
-        max_length=MAX_BIO_LENGTH, blank=True, verbose_name='Биография')
+        max_length=MAX_BIO_LENGTH, blank=True, verbose_name='Биография'
+    )
     role = models.CharField(
         max_length=MAX_NAME_LENGTH, choices=CHOICES,
         default=USER, verbose_name='Роль'
     )
     confirmation_code = models.CharField(
-        max_length=CONFIRMATION_CODE_LENGTH, blank=True, null=True,
+        max_length=CONFIRMATION_CODE_LENGTH, blank=True,
         verbose_name='Код подтверждения'
     )
 
@@ -44,7 +45,7 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
-        return self.role == ADMIN
+        return self.role == ADMIN or self.is_superuser or self.is_staff
 
     @property
     def is_moderator(self):
@@ -58,43 +59,40 @@ class User(AbstractUser):
         return self.username[:MAX_STR_LENGTH]
 
 
-class Category(models.Model):
-    name = models.CharField('Категория', max_length=MAX_NAME_LENGTH)
+class BaseCategoryGenre(models.Model):
+    name = models.CharField('Название', max_length=MAX_NAME_LENGTH)
     slug = models.SlugField('Слаг', max_length=MAX_SLUG_LENGTH, unique=True)
 
     class Meta:
+        abstract = True
         ordering = ('name',)
-        verbose_name = 'Категория'
-        verbose_name_plural = 'Категории'
+        verbose_name = 'Базовая модель для категорий и жанров'
 
     def __str__(self):
         return self.name
 
 
-class Genre(models.Model):
-    name = models.CharField('Жанр', max_length=MAX_NAME_LENGTH)
-    slug = models.SlugField('Слаг', max_length=MAX_SLUG_LENGTH, unique=True)
+class Category(BaseCategoryGenre):
+    class Meta:
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
 
+
+class Genre(BaseCategoryGenre):
     class Meta:
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
-    def __str__(self):
-        return self.name
+
+def year_validator(value):
+    current_year = datetime.date.today().year
+    if value > current_year:
+        raise ValidationError(f'Год не может быть больше, чем {current_year}')
 
 
 class Title(models.Model):
     name = models.CharField('Название', max_length=MAX_NAME_LENGTH)
-    year = models.PositiveSmallIntegerField('Год выпуска')
-
-    def clean(self):
-        current_year = datetime.date.today().year
-        if self.year > current_year:
-            raise ValidationError(
-                {'year': f'Год не может быть больше, чем {current_year}'}
-            )
-        return super().clean()
-
+    year = models.SmallIntegerField('Год выпуска', validators=[year_validator])
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(Genre, verbose_name='Жанр')
     category = models.ForeignKey(

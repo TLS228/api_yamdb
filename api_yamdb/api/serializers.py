@@ -77,13 +77,19 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleSerializerForRead(serializers.ModelSerializer):
     genre = GenreSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.IntegerField(read_only=True, default=None)
 
     class Meta:
         model = Title
         fields = (
             'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
         )
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if representation.get('rating') is None:
+            representation['rating'] = None
+        return representation
 
 
 class TitleSerializerForWrite(serializers.ModelSerializer):
